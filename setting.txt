@@ -1,2 +1,0 @@
-# .ssh/conf Path
-ssh_conf: 

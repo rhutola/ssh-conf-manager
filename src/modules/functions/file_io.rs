@@ -2,31 +2,28 @@
 use std::fs::{ self, read_to_string };
 use std::io::{ BufWriter, Write};
 use crate::modules::structs::config::SshConfig;
+use crate::modules::structs::app_setting::AppSetting;
 
 /// Read setting.txt
 /// Get set value and store in Vec
-pub fn read_setting_file() -> Vec<String> {
+pub fn read_setting_file() -> AppSetting {
     let file_data = read_to_string("setting.txt");
     let read_str = match file_data {
         Ok(content) => content,
-        Err(error) => { panic!("Cloud not open file: {}", error) }
+        Err(_error) => return AppSetting::new(),
     };
 
     // Check the line by line and get the set value
-    let mut setting_vec = Vec::new();
     let read_lines: Vec<&str> = read_str.trim().split("\n").collect();
-    let mut ssh_conf_path = String::new();
+    let mut app_setting = AppSetting::new();
     for line in read_lines {
         // Get config file path
-        if line.starts_with("ssh_conf:") {
-            ssh_conf_path = (&line[9..]).trim().to_string();
+        if line.starts_with("config_path:") {
+            app_setting.config_path = (&line[11..]).trim().to_string();
         }
     }
 
-    // Set to Vec
-    setting_vec.push(ssh_conf_path);
-
-    return setting_vec;
+    return app_setting;
 }
 
 /// Read config file
@@ -84,6 +81,25 @@ pub fn write_config_file(filename: &str, write_string: String) -> bool {
     let mut file = BufWriter::new(fs::OpenOptions::new().write(true).open(filename.clone()).unwrap());
     let byte_string = write_string.as_bytes();
 
+    file.write(byte_string).unwrap();
+
+    return true;
+}
+
+/// Write application setting file
+/// Output string to confisetting file
+pub fn write_app_setting_file(write_string: String) -> bool {
+    let file_name = String::from("setting.txt");
+    let mut file;
+
+    // Create file if it does not exist
+    if fs::metadata(file_name.clone()).is_ok() {
+        file = BufWriter::new(fs::OpenOptions::new().write(true).open(file_name.clone()).unwrap());
+    } else {
+        file = BufWriter::new(fs::File::create(file_name.clone()).unwrap());
+    }
+
+    let byte_string = write_string.as_bytes();
     file.write(byte_string).unwrap();
 
     return true;

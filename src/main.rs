@@ -3,18 +3,29 @@
 /// created 2020/07/15
 /// updated 2020/07/15
 use ssh_config::structs::config::SshConfig;
+// use ssh_config::structs::app_setting::AppSetting;
 use ssh_config::functions::file_io;
 use ssh_config::functions::custom::{ io_custom, regex_cutom };
 
 /// Main function
 fn main() {
     // Read file
-    let settings = file_io::read_setting_file();
-    let filename = &settings[0];
-    if filename == "" {
-        println!("Config file path is not listed.");
-        return;
+    let mut app_setting = file_io::read_setting_file();
+    if !app_setting.is_set() {
+        println!("Setting file is not found.");
+        let input: &str = &io_custom::input("Create new setting file? [y/n] > ").to_lowercase();
+        app_setting.config_path = io_custom::input("Input config file full path > ");
+        match input {
+            "y" | "yes" | "" => {
+                if file_io::write_app_setting_file(app_setting.to_string()) {
+                    println!("Create succeed.");
+                }
+            }
+            _ => {},
+        }
     }
+    let filename = &app_setting.config_path;
+
     let mut ssh_configs = file_io::read_config_file(&filename);
     let mut max_id: u32 = 0;
 
