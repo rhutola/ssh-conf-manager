@@ -1,7 +1,7 @@
 /// Manipulate .ssh settings.
 ///
 /// created 2020/07/15
-/// updated 2020/07/15
+/// updated 2020/07/20
 use ssh_config::structs::config::SshConfig;
 // use ssh_config::structs::app_setting::AppSetting;
 use ssh_config::functions::file_io;
@@ -24,9 +24,8 @@ fn main() {
             _ => {},
         }
     }
-    let filename = &app_setting.config_path;
 
-    let mut ssh_configs = file_io::read_config_file(&filename);
+    let mut ssh_configs = file_io::read_config_file(&app_setting.config_path);
     let mut max_id: u32 = 0;
 
     // Operation
@@ -116,13 +115,36 @@ fn main() {
                 for config in &ssh_configs {
                     out_string = [out_string, config.to_string(), "\n".to_string()].concat();
                 }
-                if file_io::write_config_file(&filename, out_string) {
+                if file_io::write_config_file(&app_setting.config_path.clone(), out_string) {
                     println!("Succeed.");
                 } else {
                     println!("Failed.");
                 }
             }
-            "path" => println!("SSH config path : {}", &filename),
+            "path" => {
+                println!("\nSSH config path : {}", &app_setting.config_path.clone());
+                println!("Change path or output to setting file.");
+                println!("'edit', 'save', 'exit'.");
+                loop {
+                    let word: &str = &io_custom::input("conf-path > ");
+                    match word {
+                        "edit" => {
+                            let path: &str = &io_custom::input("Input config file path > ");
+                            if path != "" {
+                                app_setting.config_path = path.to_string();
+                            }
+                        }
+                        "save" => {
+                            if file_io::write_app_setting_file(app_setting.to_string()) {
+                                println!("succeed.");
+                            }
+                        }
+                        "exit" => break,
+                        _ => continue,
+                    }
+                    println!("");
+                }
+            }
             "exit" => break,
             "help" | _ => {
                 if input != "help" {
@@ -141,4 +163,6 @@ fn main() {
         }
         println!("");
     }
+
+    return;
 }

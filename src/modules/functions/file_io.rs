@@ -3,6 +3,7 @@ use std::fs::{ self, read_to_string };
 use std::io::{ BufWriter, Write};
 use crate::modules::structs::config::SshConfig;
 use crate::modules::structs::app_setting::AppSetting;
+use crate::modules::functions::custom::io_custom;
 
 /// Read setting.txt
 /// Get set value and store in Vec
@@ -32,7 +33,7 @@ pub fn read_config_file(filename: &str) -> Vec<SshConfig> {
     let file_data = read_to_string(filename);
     let read_str = match file_data {
         Ok(content) => content,
-        Err(error) => { panic!("Cloud not open file: {}", error) }
+        Err(_error) => return Vec::new(),
     };
 
     // Get setting value
@@ -74,14 +75,29 @@ pub fn read_config_file(filename: &str) -> Vec<SshConfig> {
 /// Write config file
 /// Output string to config file
 pub fn write_config_file(filename: &str, write_string: String) -> bool {
-    // Fail if the file does not exist
+    let file;
     if !fs::metadata(filename.clone()).is_ok() {
-        return false;
+        println!("Now setting file path: {}", filename);
+        let input: &str = &io_custom::input("Create file? [y/n] > ");
+        match input {
+            "y" | "yes" | "" => {
+                file = match fs::File::create(filename.clone()) {
+                    Err(_error) => return false,
+                    Ok(ok) => ok,
+                }
+            }
+            _ => return false,
+        }
+    } else {
+        file = match fs::OpenOptions::new().write(true).open(filename.clone()) {
+            Err(_error) => return false,
+            Ok(ok) => ok,
+        }
     }
-    let mut file = BufWriter::new(fs::OpenOptions::new().write(true).open(filename.clone()).unwrap());
+    let mut file_bf = BufWriter::new(file);
     let byte_string = write_string.as_bytes();
 
-    file.write(byte_string).unwrap();
+    file_bf.write(byte_string).unwrap();
 
     return true;
 }
