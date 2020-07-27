@@ -20,7 +20,7 @@ pub fn read_setting_file() -> AppSetting {
     for line in read_lines {
         // Get config file path
         if line.starts_with("config_path:") {
-            app_setting.config_path = (&line[11..]).trim().to_string();
+            app_setting.config_path = (&line[12..]).trim().to_string();
         }
     }
 
@@ -76,22 +76,34 @@ pub fn read_config_file(filename: &str) -> Vec<SshConfig> {
 /// Output string to config file
 pub fn write_config_file(filename: &str, write_string: String) -> bool {
     let file;
+    println!("Now setting file path: {}", filename);
     if !fs::metadata(filename.clone()).is_ok() {
-        println!("Now setting file path: {}", filename);
         let input: &str = &io_custom::input("Create file? [y/n] > ");
         match input {
             "y" | "yes" | "" => {
                 file = match fs::File::create(filename.clone()) {
-                    Err(_error) => return false,
+                    Err(_error) => {
+                        println!("{} file created fail.", filename);
+                        return false;
+                    },
                     Ok(ok) => ok,
                 }
             }
             _ => return false,
         }
     } else {
-        file = match fs::OpenOptions::new().write(true).open(filename.clone()) {
-            Err(_error) => return false,
-            Ok(ok) => ok,
+        let input: &str = &io_custom::input("Do you want to overwrite? [y/n] > ");
+        match input {
+            "y" | "yes" | "" => {
+                file = match fs::OpenOptions::new().write(true).open(filename.clone()) {
+                    Err(_error) => {
+                        println!("{} file open is fail.", filename);
+                        return false;
+                    },
+                    Ok(ok) => ok,
+                }
+            }
+            _ => return false,
         }
     }
     let mut file_bf = BufWriter::new(file);
