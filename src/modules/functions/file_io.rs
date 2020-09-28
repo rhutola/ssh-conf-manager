@@ -148,7 +148,7 @@ pub fn write_config_file(filename: &str, write_string: String) -> bool {
             _ => return false,
         }
     }
-    file.set_len(0);
+    file.set_len(0).unwrap();
     let mut file_bf = BufWriter::new(file);
     let byte_string = write_string.as_bytes();
 
@@ -170,7 +170,6 @@ pub fn write_app_setting_file(write_string: String) -> bool {
         file = BufWriter::new(fs::File::create(file_name.clone()).unwrap());
     }
 
-    file.set_len(0);
     let byte_string = write_string.as_bytes();
     file.write(byte_string).unwrap();
 
@@ -212,7 +211,7 @@ pub fn write_known_hosts_file(filename: &str, write_string: String) -> bool {
         }
     }
 
-    file.set_len(0);
+    file.set_len(0).unwrap();
     let mut file_bf = BufWriter::new(file);
     let byte_string = write_string.as_bytes();
 
