@@ -3,6 +3,7 @@ use std::fs::{ self, read_to_string };
 use std::io::{ BufWriter, Write};
 use crate::modules::structs::config::SshConfig;
 use crate::modules::structs::app_setting::AppSetting;
+use crate::modules::structs::known_hosts::KnownHosts;
 use crate::modules::functions::custom::io_custom;
 
 /// Read setting.txt
@@ -21,6 +22,10 @@ pub fn read_setting_file() -> AppSetting {
         // Get config file path
         if line.starts_with("config_path:") {
             app_setting.config_path = (&line[12..]).trim().to_string();
+        }
+        // Get known_hosts file path
+        if line.starts_with("known_host_path:") {
+            app_setting.known_host_path = (&line[16..]).trim().to_string();
         }
     }
 
@@ -72,6 +77,43 @@ pub fn read_config_file(filename: &str) -> Vec<SshConfig> {
     return configs;
 }
 
+/// Read known_hosts file
+/// Get the contents of the file and set it to KnownHosts struct
+pub fn read_known_hosts_file(filename: &str) -> Vec<KnownHosts> {
+    let file_data = read_to_string(filename);
+    let read_str = match file_data {
+        Ok(content) => content,
+        Err(_error) => return Vec::new(),
+    };
+
+    // Get setting value
+    let mut configs = Vec::new();
+    let mut known_hosts = KnownHosts::new();
+    let mut id: u32 = 1;
+
+    let read_lines: Vec<&str> = read_str.trim().split("\n").collect();
+    for line in read_lines {
+        if line != "" {
+            let words: Vec<&str> = line.trim().split_whitespace().collect();
+            if &words[0][..1] == "[" {
+                let ip_port: Vec<&str>  = words[0].trim().split(":").collect();
+                known_hosts.host = ip_port[0][1..ip_port[0].len()-1].to_string();
+                known_hosts.port = ip_port[1].to_string();
+            } else {
+                known_hosts.host = words[0].to_string();
+            }
+            known_hosts.key_type = words[1].to_string();
+            known_hosts.key = words[2].to_string();
+            known_hosts.id = id;
+            configs.push(known_hosts);
+            known_hosts = KnownHosts::new();
+            id += 1;
+        }
+    }
+
+    return configs;
+}
+
 /// Write config file
 /// Output string to config file
 pub fn write_config_file(filename: &str, write_string: String) -> bool {
@@ -106,6 +148,7 @@ pub fn write_config_file(filename: &str, write_string: String) -> bool {
             _ => return false,
         }
     }
+    file.set_len(0);
     let mut file_bf = BufWriter::new(file);
     let byte_string = write_string.as_bytes();
 
@@ -127,8 +170,53 @@ pub fn write_app_setting_file(write_string: String) -> bool {
         file = BufWriter::new(fs::File::create(file_name.clone()).unwrap());
     }
 
+    file.set_len(0);
     let byte_string = write_string.as_bytes();
     file.write(byte_string).unwrap();
+
+    return true;
+}
+
+/// Write known_hosts file
+/// Output string to config file
+pub fn write_known_hosts_file(filename: &str, write_string: String) -> bool {
+    let file;
+    println!("Now setting file path: {}", filename);
+    if !fs::metadata(filename.clone()).is_ok() {
+        let input: &str = &io_custom::input("Create file? [y/n] > ");
+        match input {
+            "y" | "yes" | "" => {
+                file = match fs::File::create(filename.clone()) {
+                    Err(_error) => {
+                        println!("{} file created fail.", filename);
+                        return false;
+                    },
+                    Ok(ok) => ok,
+                }
+            }
+            _ => return false,
+        }
+    } else {
+        let input: &str = &io_custom::input("Do you want to overwrite? [y/n] > ");
+        match input {
+            "y" | "yes" | "" => {
+                file = match fs::OpenOptions::new().write(true).open(filename.clone()) {
+                    Err(_error) => {
+                        println!("{} file open is fail.", filename);
+                        return false;
+                    },
+                    Ok(ok) => ok,
+                }
+            }
+            _ => return false,
+        }
+    }
+
+    file.set_len(0);
+    let mut file_bf = BufWriter::new(file);
+    let byte_string = write_string.as_bytes();
+
+    file_bf.write(byte_string).unwrap();
 
     return true;
 }
